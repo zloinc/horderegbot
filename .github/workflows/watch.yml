@@ -1,0 +1,45 @@
+name: Horde watch
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 minutes (GitHub's shortest interval)
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Send a test message to Telegram instead of a normal check"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # lets the job save state.json
+
+concurrency:
+  group: horde-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check sources
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ "${{ inputs.test }}" = "true" ]; then
+            python3 watcher.py --test
+          else
+            python3 watcher.py
+          fi
+
+      - name: Save state
+        if: always()
+        run: |
+          git config user.name "horde-watch"
+          git config user.email "horde-watch@users.noreply.github.com"
+          git add state.json 2>/dev/null || exit 0
+          git diff --cached --quiet || (git commit -q -m "Update watcher state" && git push -q)
+

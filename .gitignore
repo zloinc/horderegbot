@@ -1,0 +1,7 @@
+# Local clicker bot and secrets (never push to public GitHub repo)
+bot/
+.env
+*.log
+captures/
+__pycache__/
+*.pyc
